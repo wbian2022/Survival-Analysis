@@ -1,2 +1,2 @@
 # Survival-Analysis
-Course Materials
+This repository contains all the course materials, assignments, and project files from my Survival Analysis course at Bowling Green State University. Survival Analysis is a branch of statistics that deals with time-to-event data, which is ubiquitous in various fields like medical research, economics, and engineering. The course provided a deep dive into both the theory and application of survival analysis.

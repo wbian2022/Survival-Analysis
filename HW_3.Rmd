@@ -1,0 +1,237 @@
+---
+title: "HW_3"
+author: "Wenjuan Bian"
+date: "2023-03-19"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+
+```{r }
+
+#####
+## 6.2. For the covariates with complete data (in Columns 1–22), use stepwise regression with AIC to identify the best model for (a) overall survival, and (b) recurrence-free survival.
+#####
+library(survival)
+library(asaur)
+library(MASS)
+attach (hepatoCellular)
+head(hepatoCellular[, 1:8])
+head(hepatoCellular[, 9:13])
+head(hepatoCellular[, 14:22])
+
+
+### (a) overall survival
+modelAll1.coxph <- coxph(Surv(OS, Death) ~ Age + HBsAg + Cirrhosis + ALT +AST + AFP+ Tumorsize + Tumordifferentiation + Vascularinvasion + Tumormultiplicity + Capsulation + TNM + BCLC + RFS + Recurrence + CXCL17T +  CXCL17P + CXCL17N)
+### With RFS
+result.step1 <-suppressWarnings(step(modelAll1.coxph, scope=list(upper=~  Age + HBsAg + Cirrhosis + ALT +AST + AFP+ Tumorsize + Tumordifferentiation + Vascularinvasion + Tumormultiplicity + Capsulation + TNM + BCLC + RFS + Recurrence + CXCL17T +  CXCL17P + CXCL17N, lower=~Age)))
+### Without RFS
+
+
+summary(result.step1)
+
+
+### (b) recurrence-free survival.
+modelAll2.coxph <- suppressWarnings(coxph(Surv(RFS, Death) ~ Age + HBsAg + Cirrhosis + ALT +AST + AFP+ Tumorsize + Tumordifferentiation + Vascularinvasion + Tumormultiplicity + Capsulation + TNM + BCLC + OS + Recurrence + CXCL17T +  CXCL17P + CXCL17N))
+### With OS
+result.step2 <-suppressWarnings(step(modelAll2.coxph, scope=list(upper=~ Age + HBsAg + Cirrhosis + ALT +AST + AFP+ Tumorsize + Tumordifferentiation + Vascularinvasion + Tumormultiplicity + Capsulation + TNM + BCLC + OS + Recurrence + CXCL17T +  CXCL17P + CXCL17N, lower=~Age)))
+### Without OS
+
+
+summary(result.step2)
+
+
+# Fit a Cox proportional hazards model with stepwise regression and AIC for overall survival
+#fit1 <- suppressWarnings(stepAIC(coxph(Surv(OS, Death) ~ ., data = hepatoCellular[, 2:22]), direction = "both", trace = TRUE))
+
+# Fit a Cox proportional hazards model with stepwise regression and AIC for recurrence-free survival
+#fit2 <- suppressWarnings(stepAIC(coxph(Surv(RFS, Death) ~ ., data = hepatoCellular[, 2:22]), direction = "both", trace = TRUE))
+
+# Print the final models
+#summary(fit1)
+
+#summary(fit2)
+
+
+#####
+## 7.1. Consider the case deletion and dfbeta residuals discussed in Sect. 7.1.2. For each of the covariates in the final pharmacoSmoking model (grp, employment levels 2 and 3 vs. 1, and age), plot the case deletion residuals versus the dfbeta residuals. Also plot the “dfbeta” residuals versus the “dfbetas” residuals. Do you see any differences?
+#####
+library(survival)
+library(asaur)
+library(MASS)
+library(survminer)             # Load the package
+library(ggfortify)
+attach(pharmacoSmoking)
+library(ggplot2)
+head(pharmacoSmoking)
+tail(pharmacoSmoking)
+
+
+result.coxph <- coxph(Surv(ttr, relapse) ~ grp + employment
++ age)
+result.coxph
+
+
+coef.all_1 <- result.coxph$coef[1]
+coef.all_1
+
+n.obs1 <- length(ttr)
+jkbeta.vec1 <- rep(NA, n.obs1)
+for (i in 1:n.obs1) {
+tt.i <- ttr[-i]
+delta.i <- relapse[-i]
+grp.i <- grp[-i]
+employment.i <- employment[-i]
+age.i <- age[-i]
+result.coxph.i <- coxph(Surv(tt.i, delta.i) ~ grp.i +
+employment.i + age.i)
+coef.i <- result.coxph.i$coef[1]
+jkbeta.vec1[i] <- (coef.all_1 - coef.i)
+}
+
+index.obs1 <- 1:n.obs1
+plot(jkbeta.vec1 ~ index.obs1, type="h",main="Residuals versus the patient ID’s",
+xlab="Observation", ylab="Change in coefficient for grppatchOnly")
+abline(h=0)
+
+identify(jkbeta.vec1 ~ index.obs1)
+
+resid.dfbeta1 <- residuals(result.coxph, type="dfbeta")
+n.obs <- length(ttr)
+index.obs1 <- 1:n.obs1
+plot(resid.dfbeta1[,1] ~ index.obs1, type="h", main= "dfbeta Residuals",
+xlab="Observation", ylab="Change in coefficient for grppatchOnly")
+abline(h=0)
+identify(resid.dfbeta1[,1] ~ index.obs1)
+
+
+
+coef.all_2 <- result.coxph$coef[2]
+coef.all_2
+
+n.obs2 <- length(ttr)
+jkbeta.vec2 <- rep(NA, n.obs2)
+for (i in 1:n.obs2) {
+tt.i <- ttr[-i]
+delta.i <- relapse[-i]
+grp.i <- grp[-i]
+employment.i <- employment[-i]
+age.i <- age[-i]
+result.coxph.i <- coxph(Surv(tt.i, delta.i) ~ grp.i +
+employment.i + age.i)
+coef.i <- result.coxph.i$coef[2]
+jkbeta.vec2[i] <- (coef.all_2 - coef.i)
+}
+
+index.obs2 <- 1:n.obs2
+plot(jkbeta.vec2 ~ index.obs2, type="h",
+xlab="Observation", ylab="Change in coefficient for employmentother",
+main="Residuals versus the patient ID’s")
+abline(h=0)
+
+identify(jkbeta.vec2 ~ index.obs2)
+
+resid.dfbeta2 <- residuals(result.coxph, type="dfbeta")
+n.obs <- length(ttr)
+index.obs2 <- 1:n.obs2
+plot(resid.dfbeta2[,2] ~ index.obs2, type="h", main= "dfbeta Residuals",
+xlab="Observation", ylab="Change in coefficient for employmentother")
+abline(h=0)
+identify(resid.dfbeta2[,2] ~ index.obs2)
+
+coef.all_3 <- result.coxph$coef[3]
+coef.all_3
+
+n.obs3 <- length(ttr)
+jkbeta.vec3 <- rep(NA, n.obs3)
+for (i in 1:n.obs3) {
+tt.i <- ttr[-i]
+delta.i <- relapse[-i]
+grp.i <- grp[-i]
+employment.i <- employment[-i]
+age.i <- age[-i]
+result.coxph.i <- coxph(Surv(tt.i, delta.i) ~ grp.i +
+employment.i + age.i)
+coef.i <- result.coxph.i$coef[3]
+jkbeta.vec3[i] <- (coef.all_3 - coef.i)
+}
+
+index.obs3 <- 1:n.obs3
+plot(jkbeta.vec3 ~ index.obs3, type="h",
+xlab="Observation", ylab="Change in coefficient for employmentpt",
+main="Residuals versus the patient ID’s")
+abline(h=0)
+
+identify(jkbeta.vec3 ~ index.obs3)
+
+resid.dfbeta3 <- residuals(result.coxph, type="dfbeta")
+n.obs <- length(ttr)
+index.obs3 <- 1:n.obs3
+plot(resid.dfbeta3[,3] ~ index.obs3, type="h", main= "dfbeta Residuals",
+xlab="Observation", ylab="Change in coefficient for employmentpt")
+abline(h=0)
+identify(resid.dfbeta3[,3] ~ index.obs3)
+
+
+coef.all_4 <- result.coxph$coef[4]
+coef.all_4
+
+n.obs4 <- length(ttr)
+jkbeta.vec4 <- rep(NA, n.obs4)
+for (i in 1:n.obs4) {
+tt.i <- ttr[-i]
+delta.i <- relapse[-i]
+grp.i <- grp[-i]
+employment.i <- employment[-i]
+age.i <- age[-i]
+result.coxph.i <- coxph(Surv(tt.i, delta.i) ~ grp.i +
+employment.i + age.i)
+coef.i <- result.coxph.i$coef[4]
+jkbeta.vec4[i] <- (coef.all_4 - coef.i)
+}
+
+index.obs4 <- 1:n.obs4
+plot(jkbeta.vec4 ~ index.obs4, type="h",main="Residuals versus the patient ID’s",
+xlab="Observation", ylab="Change in coefficient for age"
+)
+abline(h=0)
+
+identify(jkbeta.vec4 ~ index.obs4)
+
+resid.dfbeta4 <- residuals(result.coxph, type="dfbeta")
+n.obs <- length(ttr)
+index.obs4 <- 1:n.obs4
+head(resid.dfbeta4)
+plot(resid.dfbeta4[,4] ~ index.obs4, type="h", main= "dfbeta Residuals",
+xlab="Observation", ylab="Change in coefficient for age")
+abline(h=0)
+identify(resid.dfbeta4[,4] ~ index.obs4)
+
+
+
+
+resid.dfbeta <- residuals(result.coxph, type="dfbetas")
+n.obs <- length(ttr)
+index.obs <- 1:n.obs
+head(resid.dfbeta)
+plot(resid.dfbeta[,1] ~ index.obs, type="h", main= "Refined dfbeta Residuals",
+xlab="Observation", ylab="Standardized change in coefficient for grppatchOnly")
+abline(h=0)
+plot(resid.dfbeta[,2] ~ index.obs, type="h", main= "Refined dfbeta Residuals",
+xlab="Observation", ylab="Standardized change in coefficient for employmentother")
+abline(h=0)
+plot(resid.dfbeta[,3] ~ index.obs, type="h", main= "Refined dfbeta Residuals",
+xlab="Observation", ylab="Standardized change in coefficient for employmentpt")
+abline(h=0)
+plot(resid.dfbeta[,4] ~ index.obs, type="h", main= "Refined dfbeta Residuals",
+xlab="Observation", ylab="Standardized change in coefficient for age ")
+abline(h=0)
+
+
+
+```
+
+

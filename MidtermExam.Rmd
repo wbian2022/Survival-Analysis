@@ -1,0 +1,117 @@
+---
+title: "Midterm Exam"
+author: "Wenjuan Bian"
+date: "2023-02-24"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(survival) 
+library(asaur)
+library(sandwich)
+library(boot)
+
+tt <- c(143, 164, 188, 190, 192, 206, 216, 244,142, 156, 163, 198, 239, 240, 305, 324)
+delta <- c(1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0)
+trt <- c(0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1)
+
+# Create a data frame with the survival data
+middata <- data.frame(tt = c(143, 164, 188, 190, 192, 206, 216, 244,142, 156, 163, 198, 239, 240, 305, 324), delta = c(1, 1, 1, 1, 1, 1, 0, 0,1, 1, 1, 1, 1, 0, 0,0), trt = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1))
+head(middata)
+
+fit <- coxph(Surv(tt, delta) ~ trt, data = middata)
+
+# View the summary of the model
+summary(fit)
+
+####
+# (b)
+#####
+
+# Fit the Cox proportional hazards model
+fit <- coxph(Surv(tt, delta) ~ trt, data = middata)
+
+# Calculate the log-likelihood for the full model
+ll_full <- logLik(fit)
+
+# Fit the reduced model where the treatment effect is removed
+fit_reduced <- coxph(Surv(tt, delta) ~ 1, data = middata)
+
+# Calculate the log-likelihood for the reduced model
+ll_reduced <- logLik(fit_reduced)
+
+# Calculate the test statistic
+test_stat <- -2 * (ll_reduced - ll_full)
+
+# Calculate the p-value using the chi-squared distribution
+p_value <- pchisq(test_stat, df = 1, lower.tail = FALSE)
+
+# Print the test statistic and p-value
+cat("Test statistic:", round(test_stat, 2), "\n")
+cat("p-value:", format(p_value, scientific = FALSE), "\n")
+######
+# (c)
+######
+
+# Estimate the baseline cumulative hazard function
+bh <- basehaz(fit)
+
+
+######
+# 2. (20 points = 10+10) Now consider the 16 rats as a random sample by combining the two groups. 
+# (a) Obtain the Kaplan-Meier estimate for the survival function of the failure time. Report the results in a table similar to Table 3.1 together with a plot for the KM estimate for the survival function.
+######
+
+
+
+# Compute the KM estimate for the survival function
+result.km <- survfit(Surv(tt, delta)~1,data=middata)
+
+# Print the KM estimate as a table
+print(result.km)
+
+# Plot the KM estimate
+plot(result.km, main = "Kaplan-Meier Estimate", xlab = "Time", ylab = "Survival Probability")
+
+
+######
+# (b) Construct 95% confidence intervals by the preferred method via log-log transformation for the survival functions, based on the KM estimate.
+######
+
+
+
+# View the summary of the model
+summary(fit)
+
+# Compute the KM estimate for the survival function
+result.km <- survfit(Surv(tt, delta)~1,data=middata)
+
+# Print the KM estimate as a table
+print(result.km)
+
+# Plot the KM estimate
+plot(result.km, main = "Kaplan-Meier Estimate", xlab = "Time", ylab = "Survival Probability")
+
+# Construct 95% confidence intervals by the preferred method via log-log transformation for the survival functions, based on the KM estimate.
+result.km.lg <- survfit(Surv(tt, delta) ~ 1, conf.type="log-log",
+data=middata)
+summary(result.km.lg)
+
+
+
+
+
+
+
+
+```

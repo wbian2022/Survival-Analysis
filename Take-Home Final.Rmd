@@ -1,0 +1,108 @@
+---
+title: "TAKE-HOME FINAL"
+author: "Wenjuan Bian"
+date: "2023-04-14"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+```{r}
+
+
+####
+# A clinical trial of chemotherapy against chemotherapy combined with radio-therapy in the treatment of locally unresectable gastric cancer was conductedby the Gastrointestinal Tumor Study Group in 1982. In this trial, forty-five patients were randomized to each of the two arms and followed for abouteight years. The data (in days) are as follows (the right-censored times are indicated by an asterisk).
+## Chemotherapy Only
+# 1 63 105 129 182 216 250 262 301 301 342 354
+# 356 358 380 383 383 388 394 408 460 489 499 523
+# 524 535 562 569 675 676 748 778 786 797 955 968
+# 1000 1245 1271 1420 1551 1694 2363 2754 2950
+##Chemotherapy Plus Radiotherapy
+# 17 42 44 48 60 72 74 95 103 108 122 144
+# 167 170 183 185 193 195 197 208 234 235 254 307
+# 315 401 445 464 484 528 542 547 577 580 795 855
+# 1366 1577 2060 2412 2486 2796 2802 2934 2988
+# The clinical trial researchers wished to see whether that the survival rate of the two groups is the same. There are at three models that can be considered for the research aim: nonparametric model (Chapter 4), proportional hazard/Cox model (Chapter 5), parametric model (Chapter 10). Test the hypothesis at level apha = 5% that the survival rate of the two groups is the same, in each of the three models. For each approach, you should outline the model and the method/algorithm employed to carry out the test and state your conclusion.
+
+
+library(survival)
+library(asaur)
+library(MASS)
+library(fitdistrplus)
+
+
+finaldata <- data.frame(tt = c(1, 63, 105, 129, 182, 216, 250, 262, 301, 301, 342, 354, 356, 358, 380, 383, 383, 388, 394, 408, 460, 489, 499, 523, 524, 535, 562, 569, 675, 676, 748, 778, 786, 797, 955, 968, 1000, 1245, 1271, 1420, 1551, 1694, 2363, 2754, 2950,17, 42, 44, 48, 60, 72, 74, 95, 103, 108, 122, 144, 167, 170, 183, 185, 193, 195, 197, 208, 234, 235, 254, 307, 315, 401, 445, 464, 484, 528, 542, 547, 577, 580, 795, 855, 1366, 1577, 2060, 2412, 2486, 2796, 2802, 2934, 2988), delta = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1,1,0, 0,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 0, 0, 0, 0, 0, 0), trt = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1, 1,1,1, 1))
+head(finaldata)
+
+
+###
+# 1. (30 points) Test in a nonparametric model.
+####
+
+# compute Kaplan-Meier estimates
+result.km <- survfit(Surv(tt, delta)~1,data=finaldata)
+
+# Print the KM estimate as a table
+print(result.km)
+
+# Plot the KM estimate
+plot(result.km, main = "Kaplan-Meier Estimate", xlab = "Time", ylab = "Survival Probability")
+
+
+
+
+
+
+### 
+# 2. (30 points) Test in a proportional hazard model.
+###
+
+
+# fit Cox proportional hazards model
+cox_fit <- coxph(Surv(tt, delta) ~ trt, data = finaldata)
+
+# display the results
+summary(cox_fit)
+
+###
+# 3. (30 points) Test in aparametric model.
+###
+
+# Fit lognormal distribution to chemo only data using BFGS algorithm
+
+fit_lognormal <- survreg(Surv(tt, delta) ~ trt, dist="lognormal",data=finaldata)
+# Print distribution parameters
+summary(fit_lognormal)
+
+
+fit_weibull <- survreg(Surv(tt, delta) ~ trt, data=finaldata, dist="weibull")
+summary(fit_weibull)
+
+fit_loglogistic <- survreg(Surv(tt, delta) ~ trt,data=finaldata, dist="loglogistic")
+summary(fit_loglogistic)
+
+#4
+
+
+
+
+
+
+```
+

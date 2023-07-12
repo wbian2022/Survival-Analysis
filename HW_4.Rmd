@@ -1,0 +1,180 @@
+---
+title: "HW_4"
+author: "Wenjuan Bian"
+date: "2023-04-15"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+### 8.2, 9.1, 10.4
+####
+# 8.2. Consider the following synthetic time dependent data:
+
+## id wait.time futime fustat transplant
+## 1 12 58 1 1
+## 2 – 8 1 0
+## 3 – 37 1 0
+## 4 18 28 1 1
+## 5 – 35 1 0
+## 6 17 77 1 1
+# First model the data ignoring the wait time. Then transform the data into startstop format, then use that form of the data to model “transplant” as a time dependent covariate. Write out the partial likelihood for these data, and use this partial likelihood to find the maximum partial likelihood estimate of the coefficient for transplant. Compare your answer to the results of “coxph”.
+
+library(survival)
+library(asaur)
+library(coxme)
+library(Hmisc)
+
+
+id <- c(1, 2, 3, 4, 5, 6)
+wait.time <- c(12, NA, NA, 18, NA, 17)
+futime <- c(58, 8, 37, 28, 35, 77)
+fustat <- c(1, 1, 1, 1, 1, 1)
+transplant <- c(1, 0, 0, 1, 0, 1)
+ndata<- data.frame(id, wait.time, futime, fustat, transplant)
+
+cox.ndata <- coxph(Surv(futime, fustat) ~ transplant, data=ndata)
+
+summary(cox.ndata)
+
+
+sdata <- tmerge(ndata, ndata, id=id,
+                death=event(futime, fustat),
+                transpl=tdc(wait.time))
+sdata.counting <- sdata[,-(2:5)]
+sdata.counting
+
+coxph.sdata <- coxph(Surv(tstart, tstop, death) ~ transpl,
+data=sdata.counting)
+summary(coxph.sdata)
+
+coef_partial_likelihood <- coef(coxph.sdata)["transpl"]
+
+
+coef_coxph <- coef(cox.ndata)["transplant"]
+
+cat("Coefficient estimate from partial likelihood:", coef_partial_likelihood, "\n")
+cat("Coefficient estimate from Cox model ignoring wait time:", coef_coxph, "\n")
+
+
+
+####
+#9.1. Using the “ashkenazi” data of Sect. 9.1, use “coxme” to fit a random effects model without the “mutant” fixed effect term. How does the estimate of the variance of the random effect from this model compare to that from the model that includes “mutant” as a fixed effect?
+####
+
+ashkenazi[ashkenazi$famID %in% c(1, 9, 94), ]
+
+result.coxph <- coxph(Surv(age, brcancer) ~ mutant, data=ashkenazi)
+summary(result.coxph)
+
+result.coxph.cluster <- coxph(Surv(age, brcancer) ~ mutant +
+cluster(famID), data=ashkenazi)
+summary(result.coxph.cluster)
+
+result.coxme <- coxme(Surv(age, brcancer) ~ mutant + (1|famID),
+data=ashkenazi)
+summary(result.coxme)
+
+result.coxme2 <- coxme(Surv(age, brcancer) ~ (1|famID),
+data=ashkenazi)
+summary(result.coxme2)
+
+
+
+###
+# 10.4. Using the “ashkenazi” data in the “asaur” package, fit a Weibull distribution to the women with the “wild type” (non-mutant) BRCA genotype, matching the Kaplan-Meier survival curve at ages 45 and 65. Then predict the probability that a woman with the wild type BRCA genotype will develop breast cancer before the age of 70.
+
+
+library(asaur)
+ashkenazi[ashkenazi$famID %in% c(1, 9, 94), ]
+
+wild_type <- subset(ashkenazi, mutant == "0")
+
+head(wild_type)
+
+
+fit.weibull <- survreg(Surv(age, brcancer) ~ 1, data = wild_type, dist = "weibull")
+fit.weibull
+
+result.km.b <- survfit(Surv(age, brcancer) ~ 1,data = wild_type)
+
+summary(result.km.b)
+
+
+
+result.summ <- summary(result.km.b, time=c(45, 65))
+t.vec <- result.summ$time
+t.vec
+s.vec <- result.summ$surv
+s.vec
+data.frame(t.vec, s.vec)
+
+brWeib <- Weibull2(t.vec, s.vec)
+t.vals <- 0:100
+s.vals <- brWeib(t.vals)
+brWeib
+
+# Plot the KM estimate
+
+plot(result.km.b, main = "Kaplan-Meier Estimate and Weibull", cex.main=0.8, xlab = "age", ylab = "brcancer", xlim= c(30, 100), ylim=c(0.5, 1),conf.int= F, lwd=2, cex.axis=0.9, cex.lab=0.9)
+lines(s.vals ~ t.vals, col="red", lwd=2)
+points(t.vec, s.vec, col="red", pch=16, cex=1.5)
+
+
+h_vals <- -log(s.vals)
+
+
+t_val <- 70
+h_val.70 <- h_vals[t.vals == t_val]
+h_val.70
+
+cat("The predicted probability that a woman with the wild type BRCA genotype will develop breast cancer before the age of 70:", h_val.70)
+
+m_type <- subset(ashkenazi, mutant == "1")
+
+result.km.b2 <- survfit(Surv(age, brcancer) ~ 1,data = m_type)
+
+summary(result.km.b2)
+
+
+result.summ2 <- summary(result.km.b2, time=c(45, 65))
+t.vec2 <- result.summ2$time
+t.vec2
+s.vec2 <- result.summ2$surv
+s.vec2
+data.frame(t.vec2, s.vec2)
+
+brWeib <- Weibull2(t.vec2, s.vec2)
+t.vals <- 0:100
+s.vals2 <- brWeib(t.vals)
+brWeib
+
+h_vals2 <- -log(s.vals2)
+
+
+t_val <- 70
+h_val2.70 <- h_vals2[t.vals == t_val]
+h_val2.70
+
+result.km.b2 <- survfit(Surv(age, brcancer) ~ mutant, data = ashkenazi)
+plot(result.km.b2, conf.int=T, main = "Kaplan-Meier Estimate 2", cex.main=0.8, xlab = "age", ylab = "brcancer", xlim= c(30, 100), ylim=c(0.5, 1), lwd=2, cex.axis=0.9, cex.lab=0.9)
+
+
+
+
+
+```

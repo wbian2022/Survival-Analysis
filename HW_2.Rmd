@@ -1,0 +1,105 @@
+---
+title: "HW_2"
+output: word_document
+date: "2023-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+#####
+# 4.1. Using the pharmacoSmoking data, compare the two treatments using the Prentice modification of the Gehan test, and compare your results to those from the log-rank test.                     
+#####
+
+library(asaur) 
+attach(pharmacoSmoking) 
+library(survival) 
+ 
+head(pharmacoSmoking)
+survdiff(Surv(ttr, relapse) ~ grp) 
+survdiff(Surv(ttr, relapse) ~ grp, rho=1)
+plot(survfit(Surv(ttr, relapse) ~ grp), xlab="Time in days", ylab="Survival probability",
+col=c("blue", "pink"), lwd=2)
+
+legend("topright", legend=c("Combination", "Patch only"),
+col=c("blue","pink"),bty = "n", lwd=2, cex=0.8)
+
+
+#####
+# 4.2 Again using the pharmacoSmoking data, carry out a log-rank test comparing the two treatments stratifying on employment status.
+#####
+survdiff(Surv(ttr, relapse) ~ grp + strata(employment)) 
+
+
+
+
+#####
+# 5.1. Consider the data set “aml”, which is included in the “survival” package. This is a study of whether or not maintenance therapy increases survival among patients with acute myelogenous leukemia, with survival time measured in weeks. The basic Cox model may be fitted as follows: 
+# result <- coxph(Surv(time, status) ~ x, data=aml) 72 5 Regression Analysis Using the Proportional Hazards Model Create a coarser time variable by expressing it in months instead of weeks as follows: 
+# time.months <- cut(aml$time, breaks=seq(0,161,4), labels=F)
+# Now re-fit the model,modeling ties using the Breslow, Efron, and exactmethods. Which approximate method gives a result closest to that from the exact method?
+
+
+ 
+head(aml)
+result.cox <- coxph(Surv(time, status) ~ x, data=aml)
+summary(result.cox) 
+time.months <- cut(aml$time, breaks=seq(0,161,4), labels=F)
+result.bres <- coxph(Surv(time.months, status) ~ x, data=aml)
+summary(result.bres) 
+result.efron <- coxph(Surv(time.months, status) ~ x, data=aml, ties = "efron")
+summary(result.efron) 
+result.exact <- coxph(Surv(time.months, status) ~ x, data=aml, ties = "exact")
+summary(result.exact)
+
+######
+# 5.2. Consider again the synthetic data in Table 4.1, discussed in Example 5.1 in Sect. 5.2. Use the “basehaz” function to obtain an estimate of the baseline cumulative hazard function. Use this to compute the predicted survival curves for the control and experimental groups based on the proportional hazards model we fitted in Sect. 5.2.
+#####
+
+tt <- c(6, 7, 10, 15, 19, 25)
+delta <- c(1, 0, 1, 1, 0, 1)
+trt <- c(0, 0, 1, 0, 1, 1)
+
+
+# Create a data frame with the survival data
+mydata <- data.frame(tt = c(6, 7, 10, 15, 19, 25), delta = c(1, 0, 1, 1, 0, 1), trt = c(0, 0, 1, 0, 1, 1))
+
+# Fit a proportional hazards model to the data
+fit <- coxph(Surv(tt, delta) ~ trt, data = mydata)
+
+# Estimate the baseline cumulative hazard function
+bh <- basehaz(fit)
+
+# Create data frames for new observations to predict
+ctrl_newdata <- data.frame(trt = 0, tt = rep(mean(mydata$tt), 1), delta = rep(mean(mydata$delta), 1))
+exp_newdata <- data.frame(trt = 1, tt = rep(mean(mydata$tt), 1), delta = rep(mean(mydata$delta), 1))
+
+# Compute predicted hazard rates for the control and experimental groups
+ctrl_haz <- exp(-predict(fit, newdata = ctrl_newdata, type = "expected") * bh$haz)
+exp_haz <- exp(-predict(fit, newdata = exp_newdata, type = "expected") * bh$haz)
+
+# Convert hazard rates to survival probabilities
+ctrl_surv <- cumprod(ctrl_haz)
+exp_surv <- cumprod(exp_haz)
+
+# Plot the predicted survival curves
+plot(bh$time, ctrl_surv, type = "l", xlab = "Time", ylab = "Survival Probability", col = "pink",main ="Predicted Survival Curves for Control and Experimental Group", cex.main = 0.9)
+lines(bh$time, exp_surv, col = "blue")
+legend("topright", legend = c("Control", "Experimental"), col = c("red", "blue"), bty = "n", lty = 1, cex=0.8)
+
+
+
+
+
+```
+
+

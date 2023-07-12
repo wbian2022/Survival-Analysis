@@ -1,0 +1,134 @@
+---
+title: "HW_1"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+date: "2023-02-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+### 2.1. Using the "survexp.us" data described in Example 2.2, plot
+### the hazard functions for men and women in 1940 and 2000. Comment 
+### on the change in mortality rates in children
+library(survival)
+
+hazMale_1940 <- survexp.us[,"male","1940"]
+hazFemale_1940 <- survexp.us[,"female","1940"]
+hazMale_2000 <- survexp.us[,"male","2000"]
+hazFemale_2000 <- survexp.us[,"female","2000"]
+
+DAYS_BY_YEAR <- 365.25
+tm <- c(0,
+             1/DAYS_BY_YEAR,
+             7/DAYS_BY_YEAR,
+             28/DAYS_BY_YEAR,
+             1:(dim(hazMale_1940)-4))
+
+plot(x = tm, log = "y", y = hazFemale_1940, type = "l", col="blue", lwd=1, 
+     ylab ="Hazard", xlab = "Age in years", 
+     main ="Hazard for US males and females 1940 vs 2000",cex.main = 0.8, ylim=c(1e-07,1e-02))
+lines(x = tm,  y = hazMale_1940, type = "l", col="red",lwd=1)
+lines(x = tm,  y = hazFemale_2000, type = "l", col="green",lwd=1)
+lines(x = tm,  y = hazMale_2000, type = "l", col="orange",lwd=1)
+legend("topleft",col=c("blue","red","green","orange"),
+       legend =c("Females 1940","Males 1940","Females 2000","Males 2000"), lwd=1, bty = "n", cex=0.6)
+
+### 2.4. Consider the survival data in Exercise 1.1 Assuming that 
+### these observations are from an exponential distribution, find LAMDA
+### ESTIMATE and an estimate of var(lambda ESTIMATE)
+
+survival.data <- data.frame(patient = c(1,2,3,4,5),
+                            survtime = c(5,5,4,3,1),
+                            status = c(0,0,1,1,1))
+
+d <- sum(survival.data$status)
+V <- sum(survival.data$survtime)
+
+lambda_estimado <- d/V
+lambda_estimado
+
+var_lambda_estimado <- d/V^2
+var_lambda_estimado
+
+
+###2.6 Another parametric survival distribution is the log-normal distribution. Use the density and cumulative distribution R functions “dlnorm” and “plnorm” to compute and plot the lognormal hazard functions with the parameter “meanlog” taking the values 0, 1, and 2, and with “sdlog” fixed at 0.25. Describe the risk profile a disease would have if it followed one of these hazard functions.
+
+
+
+t=seq(1,60,by=0.01)
+hlnorm=function(m,s)
+{
+
+h=(dlnorm(t,meanlog=m,sdlog=s))/(1-plnorm(t,meanlog=m,sdlog=s))
+
+return(h)
+}
+
+plot(t,hlnorm(0,0.25),type="l",ylim=c(0,7),lwd=2,col=1,xlab="Time",ylab="Hazard",main="Hazard Functions of lognormal Distribution",cex.main=0.8)
+lines(t,hlnorm(1,0.25),lwd=2,type="l",col=2)
+lines(t,hlnorm(2,0.25),lwd=2,type="l",col=3)
+legend("topright",legend=c("m=0,s=0.25","m=1,s=0.25","m=2,s=0.25"),lwd=c(2,2,2),bty='n',col=c(1,2,3),cex=0.6)
+
+###
+# 3.3. Find a smooth hazard function estimate for the gastric    #
+# cancer data using kernel width “bw.grid = 20”. Explain reason  #
+# for the multiple peaks in the estimate.                        #
+###
+
+library(asaur)
+library(survival)
+library(muhaz)
+head(gastricXelox)
+tail(gastricXelox)
+
+result.pe5 <- pehaz(gastricXelox$timeWeeks*7/30, gastricXelox$delta, width=5, max.time=20)
+result.pe1 <- pehaz(gastricXelox$timeWeeks*7/30, gastricXelox$delta, width=1, max.time=20)
+result.smooth.g <- muhaz(gastricXelox$timeWeeks*7/30, gastricXelox$delta, bw.grid = 20, bw.method
+= "local", b.cor="left", max.time=20)
+plot(result.pe1, xlab="Time in weeks",main ="Hazard kernel smoother for the gastric cancer data", cex.main = 0.8)
+lines(result.pe5, col='blue')
+lines(result.smooth.g, col='pink')
+
+
+#######
+###3.4. Estimate the survival distribution for men, conditional on reaching the age of 68, ignoring the left truncation times. Discuss the bias of this estimate by comparing to the estimate presented in Sect. 3.4.
+#######
+
+
+head(ChanningHouse)
+
+ChanningHouse$entryYears <- ChanningHouse$entry/12
+ChanningHouse$exitYears <- ChanningHouse$exit/12
+ChanningMales <- ChanningHouse[ChanningHouse$sex == "Male",]
+head(ChanningMales)
+tail(ChanningMales)
+
+result.km.68 <- survfit(Surv(entryYears,exitYears, cens,
+type="counting")~1,start.time=68,data=ChanningMales)
+result.km.n <- survfit(Surv(exitYears, cens)~1,start.time=68,data=ChanningMales)
+result.km2 <- survfit(Surv(entryYears,exitYears, cens, type="counting") ~ 1, 
+data=ChanningMales)
+result.naa <- survfit(Surv(entryYears, exitYears, cens,
+type="counting") ~ 1, type="fleming-harrington",
+data=ChanningMales)
+
+plot(result.km.68, xlim=c(68, 101), xlab="Age", 
+ylab="Survival probability",col="blue", conf.int=F)
+
+
+
+
+```
+
